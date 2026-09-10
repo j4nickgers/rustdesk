@@ -4,7 +4,7 @@ version = "1.5.0"
 authors = ["rustdesk <info@rustdesk.com>"]
 edition = "2021"
 build= "build.rs"
-description = "RustDesk Remote Desktop"
+description = "Telesolver Assistenza Remota"
 default-run = "rustdesk"
 rust-version = "1.75"
 
@@ -235,7 +235,7 @@ webrtc-util = { git = "https://github.com/rustdesk-org/webrtc", rev = "db3b07a9d
 webrtc-sctp = { git = "https://github.com/rustdesk-org/webrtc", rev = "db3b07a9dd8f195916c89c2e62a8911402b11d27" }
 
 [package.metadata.winres]
-LegalCopyright = "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved."
+LegalCopyright = "Copyright © 2026 Telesolver. Tutti i diritti riservati."
 ProductName = "RustDesk"
 FileDescription = "RustDesk Remote Desktop"
 OriginalFilename = "rustdesk.exe"

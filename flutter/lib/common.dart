@@ -3738,7 +3738,7 @@ Widget loadPowered(BuildContext context) {
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       onTap: () {
-        launchUrl(Uri.parse('https://rustdesk.com'));
+        launchUrl(Uri.parse('https://telesolver.com'));
       },
       child: Opacity(
           opacity: 0.5,
@@ -3808,7 +3808,7 @@ class _LogoState extends State<_Logo> {
             },
           );
           return Container(
-            constraints: BoxConstraints(maxWidth: 300, maxHeight: 60),
+            constraints: BoxConstraints(maxWidth: 300, maxHeight: 75),
             child: image,
           ).marginOnly(left: 12, right: 12, top: 12);
         }
