@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 
 class TelesolverSession {
@@ -19,6 +20,9 @@ class TelesolverSession {
   bool isExpired = false;
   bool isInitialized = false;
   bool hasActiveSession = false;
+
+  bool _idRegistered = false;
+  String? registeredRemoteId;
 
   Timer? _timer;
   final List<VoidCallback> _listeners = [];
@@ -53,6 +57,7 @@ class TelesolverSession {
       hasActiveSession = true;
       await fetchSessionDetails();
       _startCountdown();
+      _startRegisterIdWatcher();
     }
   }
 
@@ -133,6 +138,53 @@ class TelesolverSession {
       }
     } catch (e) {
       debugPrint('[TelesolverSession] Error fetching session: $e');
+    }
+  }
+
+  /// Monitora la generazione dell'ID del client locale e lo trasmette in automatico alla sessione Telesolver
+  void _startRegisterIdWatcher() {
+    if (_idRegistered || token == null || token!.isEmpty) return;
+
+    int attempts = 0;
+    Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+      attempts++;
+      if (_idRegistered || attempts > 120) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final id = await bind.mainGetMyId();
+        if (id.isNotEmpty && id != 'Generating ...' && id != '-') {
+          final password = await bind.mainGetTemporaryPassword();
+          await registerCredentials(id, (password.isNotEmpty && password != '-') ? password : null);
+          registeredRemoteId = id;
+          _idRegistered = true;
+          timer.cancel();
+          _notify();
+        }
+      } catch (e) {
+        debugPrint('[TelesolverSession] Polling local ID error: $e');
+      }
+    });
+  }
+
+  Future<void> registerCredentials(String remoteId, String? password) async {
+    if (token == null || token!.isEmpty) return;
+    try {
+      final url = Uri.parse('https://telesolver.com/api/remote-desktop/session/$token/register-id');
+      final res = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'remoteId': remoteId,
+          if (password != null) 'password': password,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint('[TelesolverSession] Auto-register credentials response: ${res.statusCode}');
+    } catch (e) {
+      debugPrint('[TelesolverSession] Error auto-registering credentials: $e');
     }
   }
 
@@ -230,6 +282,8 @@ class _TelesolverSessionWidgetState extends State<TelesolverSessionWidget> {
     final bgColor = isExpired
         ? Colors.red.withOpacity(0.12)
         : (isWarning ? Colors.amber.withOpacity(0.12) : const Color(0xFF1E1B4B).withOpacity(0.5));
+
+    final isIdRegistered = session.registeredRemoteId != null;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -334,6 +388,45 @@ class _TelesolverSessionWidgetState extends State<TelesolverSessionWidget> {
             ),
             const SizedBox(height: 8),
           ],
+
+          // Stato trasmissione automatica credenziali
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: isIdRegistered
+                  ? Colors.green.withOpacity(0.15)
+                  : Colors.indigo.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isIdRegistered
+                    ? Colors.green.withOpacity(0.35)
+                    : Colors.indigo.withOpacity(0.35),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isIdRegistered ? Icons.check_circle_outline : Icons.sync,
+                  size: 14,
+                  color: isIdRegistered ? Colors.greenAccent : Colors.indigoAccent,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    isIdRegistered
+                        ? 'Credenziali trasmesse! Clicca "Accetta" all\'arrivo della richiesta.'
+                        : 'Connessione e sincronizzazione ID in corso...',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: isIdRegistered ? Colors.greenAccent : Colors.indigoAccent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
 
           // Countdown Timer Bar
           Container(
