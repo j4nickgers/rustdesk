@@ -29,6 +29,7 @@ import 'mobile/pages/home_page.dart';
 import 'mobile/pages/server_page.dart';
 import 'mobile/widgets/deploy_dialog.dart';
 import 'models/platform_model.dart';
+import 'telesolver_session.dart';
 
 /// Basic window and launch properties.
 int? kWindowId;
@@ -133,6 +134,11 @@ Future<void> initEnv(String appType) async {
 void runMainApp(bool startService) async {
   // register uni links
   await initEnv(kAppTypeMain);
+  try {
+    await TelesolverSession.instance.init(args: kBootArgs);
+  } catch (e) {
+    debugPrint('[Telesolver] Init session error: $e');
+  }
   checkUpdate();
   // trigger connection status updater
   await bind.mainCheckConnectStatus();
